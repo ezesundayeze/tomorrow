@@ -41,6 +41,12 @@
 
     .input-group { margin-bottom: 18px; }
 
+    .rate-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
     label {
       display: block;
       margin-bottom: 6px;
@@ -94,6 +100,17 @@
       border-top: 1px dashed #e5e7eb;
       font-size: 1.1rem;
     }
+
+    .weighted-badge {
+      background: #eff6ff;
+      color: #1e40af;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -117,18 +134,28 @@
   </div>
 
   <div class="input-group">
-    <label>Annual Interest Rate (%)</label>
-    <input id="rate" type="number" value="16" step="0.1">
-    <div class="hint">Adjusts automatically if Monthly Contribution is set.</div>
+    <label>Weighted Rate Range (%)</label>
+    <div class="rate-grid">
+      <div>
+        <label style="font-size: 0.7rem; color: #6b7280;">Min Rate</label>
+        <input id="minRate" type="number" value="10" step="0.1">
+      </div>
+      <div>
+        <label style="font-size: 0.7rem; color: #6b7280;">Max Rate</label>
+        <input id="maxRate" type="number" value="20" step="0.1">
+      </div>
+    </div>
+    <div class="hint">Calculates based on the average of the range.</div>
   </div>
 
   <div class="input-group">
     <label>Monthly Contribution (₦)</label>
     <input id="monthly" type="number" placeholder="Calculating...">
-    <div class="hint">Leave empty to calculate required savings.</div>
+    <div class="hint">Leave empty to find required savings.</div>
   </div>
 
   <div class="stats">
+    <div id="weightedInfo" class="weighted-badge">Weighted Average: 15%</div>
     <div class="stat-item">
       <span>Total Contributions:</span>
       <span id="statTotalCont" class="highlight">₦0</span>
@@ -148,9 +175,11 @@
 const principal = document.getElementById("principal");
 const target = document.getElementById("target");
 const yearsInput = document.getElementById("years");
-const rate = document.getElementById("rate");
+const minRateInput = document.getElementById("minRate");
+const maxRateInput = document.getElementById("maxRate");
 const monthly = document.getElementById("monthly");
 
+const weightedInfo = document.getElementById("weightedInfo");
 const statTotalCont = document.getElementById("statTotalCont");
 const statInterest = document.getElementById("statInterest");
 const statFinal = document.getElementById("statFinal");
@@ -204,31 +233,48 @@ function solveForRate(P, T, years, M) {
   return mid;
 }
 
-function updateUI() {
+function updateUI(e) {
   const P = parseFloat(principal.value) || 0;
   const T = parseFloat(target.value) || 0;
   const Y = parseFloat(yearsInput.value) || 0;
-  let R = parseFloat(rate.value) || 0;
+  const minR = parseFloat(minRateInput.value) || 0;
+  const maxR = parseFloat(maxRateInput.value) || 0;
   let M = parseFloat(monthly.value);
+
+  // Calculate Weighted Rate (Average of Min and Max)
+  let weightedRate = (minR + maxR) / 2;
+  weightedInfo.innerText = `Weighted Average: ${weightedRate.toFixed(2)}%`;
 
   if (P < 0 || T < 0 || Y <= 0) return;
 
   const totalMonths = Math.round(Y * 12);
   let finalM = isNaN(M) ? 0 : M;
 
+  // If we are editing Min or Max rate, we solve for Monthly
+  // If we are editing Monthly, we solve for the rates (and update min/max proportionally)
   if (isNaN(M)) {
-    finalM = solveForMonthly(P, T, Y, R);
+    finalM = solveForMonthly(P, T, Y, weightedRate);
     if (isFinite(finalM) && finalM > 0) {
       monthly.placeholder = Math.round(finalM).toLocaleString();
     } else {
       monthly.placeholder = "0";
     }
   } else {
-    R = solveForRate(P, T, Y, M);
-    rate.value = R.toFixed(2);
+    // If user provides a monthly contribution, we find the new REQUIRED weighted rate
+    // and shift the min/max range while maintaining their original spread
+    const spread = maxR - minR;
+    const requiredRate = solveForRate(P, T, Y, M);
+    
+    // Update inputs but avoid infinite loop by checking event source
+    if (e && e.target.id === 'monthly') {
+      minRateInput.value = (requiredRate - spread/2).toFixed(2);
+      maxRateInput.value = (requiredRate + spread/2).toFixed(2);
+      weightedRate = requiredRate;
+      weightedInfo.innerText = `Weighted Average: ${weightedRate.toFixed(2)}%`;
+    }
   }
 
-  const finalBalance = calculateProjection(P, R, finalM, totalMonths);
+  const finalBalance = calculateProjection(P, weightedRate, finalM, totalMonths);
   const totalInvested = P + (finalM * totalMonths);
   
   statTotalCont.innerText = '₦' + Math.round(totalInvested).toLocaleString();
@@ -236,7 +282,7 @@ function updateUI() {
   statFinal.innerText = '₦' + Math.round(finalBalance).toLocaleString();
 }
 
-[principal, target, yearsInput, rate, monthly].forEach(input => {
+[principal, target, yearsInput, minRateInput, maxRateInput, monthly].forEach(input => {
   input.addEventListener("input", updateUI);
 });
 
