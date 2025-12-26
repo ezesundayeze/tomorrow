@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Investment Goal Calculator</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -18,55 +17,42 @@
       background: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 20px;
+      padding: 40px 20px;
       display: flex;
       justify-content: center;
     }
 
-    .wrapper {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 20px;
-      max-width: 1200px;
-      width: 100%;
-    }
-
-    @media (max-width: 900px) {
-      .wrapper { grid-template-columns: 1fr; }
-    }
-
     .container {
+      max-width: 450px;
+      width: 100%;
       background: var(--card);
-      padding: 25px;
+      padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      height: fit-content;
     }
 
-    .chart-container {
-      background: var(--card);
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      min-height: 400px;
+    h2 { 
+      margin-top: 0; 
+      font-size: 1.5rem; 
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 25px;
     }
 
-    h2 { margin-top: 0; font-size: 1.5rem; color: var(--primary); }
-
-    .input-group { margin-bottom: 15px; }
+    .input-group { margin-bottom: 18px; }
 
     label {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
       font-size: 0.875rem;
       font-weight: 600;
     }
 
     input {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #d1d5db;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 1rem;
       box-sizing: border-box;
       transition: border-color 0.2s;
@@ -75,79 +61,86 @@
     input:focus {
       outline: none;
       border-color: var(--primary);
-      ring: 2px solid var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .hint {
       font-size: 0.75rem;
       color: #6b7280;
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
     .stats {
-      margin-top: 20px;
+      margin-top: 25px;
       padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+      border-top: 2px solid #f3f4f6;
     }
 
     .stat-item {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
+      margin-bottom: 10px;
+      font-size: 1rem;
     }
 
-    .highlight { font-weight: bold; color: var(--primary); }
+    .highlight { 
+      font-weight: 700; 
+      color: var(--primary); 
+    }
+    
+    .total-line {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 1.1rem;
+    }
   </style>
 </head>
 <body>
 
-<div class="wrapper">
-  <div class="container">
-    <h2>Goal Settings</h2>
+<div class="container">
+  <h2>Investment Goal</h2>
 
-    <div class="input-group">
-      <label>Starting Capital (₦)</label>
-      <input id="principal" type="number" value="5000000">
-    </div>
-
-    <div class="input-group">
-      <label>Target Amount (₦)</label>
-      <input id="target" type="number" value="25000000">
-    </div>
-
-    <div class="input-group">
-      <label>Time Period (Years)</label>
-      <input id="years" type="number" value="5" step="0.1">
-    </div>
-
-    <div class="input-group">
-      <label>Annual Interest Rate (%)</label>
-      <input id="rate" type="number" value="16" step="0.1">
-      <div class="hint">Calculated automatically if monthly input is provided.</div>
-    </div>
-
-    <div class="input-group">
-      <label>Monthly Contribution (₦)</label>
-      <input id="monthly" type="number" placeholder="Enter to find required rate">
-      <div class="hint">Leave empty to find required monthly savings.</div>
-    </div>
-
-    <div class="stats" id="resultsSection">
-      <div class="stat-item">
-        <span>Total Contributions:</span>
-        <span id="statTotalCont" class="highlight">₦0</span>
-      </div>
-      <div class="stat-item">
-        <span>Interest Earned:</span>
-        <span id="statInterest" class="highlight">₦0</span>
-      </div>
-    </div>
+  <div class="input-group">
+    <label>Starting Capital (₦)</label>
+    <input id="principal" type="number" value="10000000">
   </div>
 
-  <div class="chart-container">
-    <h2>Growth Projection</h2>
-    <canvas id="growthChart"></canvas>
+  <div class="input-group">
+    <label>Target Amount (₦)</label>
+    <input id="target" type="number" value="50000000">
+  </div>
+
+  <div class="input-group">
+    <label>Time Period (Years)</label>
+    <input id="years" type="number" value="3" step="0.1">
+  </div>
+
+  <div class="input-group">
+    <label>Annual Interest Rate (%)</label>
+    <input id="rate" type="number" value="16" step="0.1">
+    <div class="hint">Adjusts automatically if Monthly Contribution is set.</div>
+  </div>
+
+  <div class="input-group">
+    <label>Monthly Contribution (₦)</label>
+    <input id="monthly" type="number" placeholder="Calculating...">
+    <div class="hint">Leave empty to calculate required savings.</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-item">
+      <span>Total Contributions:</span>
+      <span id="statTotalCont" class="highlight">₦0</span>
+    </div>
+    <div class="stat-item">
+      <span>Interest Earned:</span>
+      <span id="statInterest" class="highlight">₦0</span>
+    </div>
+    <div class="stat-item total-line">
+      <span>Final Balance:</span>
+      <span id="statFinal" class="highlight">₦0</span>
+    </div>
   </div>
 </div>
 
@@ -160,61 +153,21 @@ const monthly = document.getElementById("monthly");
 
 const statTotalCont = document.getElementById("statTotalCont");
 const statInterest = document.getElementById("statInterest");
-
-let chart;
-
-function initChart() {
-  const ctx = document.getElementById('growthChart').getContext('2d');
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'Balance (₦)',
-        data: [],
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: false,
-          ticks: {
-            callback: (value) => '₦' + value.toLocaleString()
-          }
-        }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (context) => 'Balance: ₦' + context.parsed.y.toLocaleString()
-          }
-        }
-      }
-    }
-  });
-}
+const statFinal = document.getElementById("statFinal");
 
 function calculateProjection(P, annualRate, monthlyContribution, totalMonths) {
   const dailyRate = (annualRate / 100) / 365;
   const daysPerMonth = 365 / 12;
   let balance = P;
-  let history = [P];
   
   for (let m = 1; m <= totalMonths; m++) {
-    // 1. Compounding current balance daily for one month
+    // Compounding current balance daily for one month
     balance *= Math.pow(1 + dailyRate, daysPerMonth);
-    // 2. Add monthly contribution at the end of the month
+    // Add monthly contribution at end of month
     balance += monthlyContribution;
-    history.push(balance);
   }
   
-  return { finalBalance: balance, history };
+  return balance;
 }
 
 function solveForMonthly(P, T, years, annualRate) {
@@ -222,19 +175,15 @@ function solveForMonthly(P, T, years, annualRate) {
   const dailyRate = (annualRate / 100) / 365;
   const daysPerMonth = 365 / 12;
   
-  // Growth of Principal alone
   const principalOnlyGrowth = P * Math.pow(1 + dailyRate, 365 * years);
   const remainingNeeded = T - principalOnlyGrowth;
   
   if (remainingNeeded <= 0) return 0;
 
-  // Solving for M in: T = P(1+r)^n + M[((1+r)^n - 1) / r_monthly]
-  // Since we use daily compounding, we simulate the "Monthly Unit Value"
-  let unitValue = 0;
   let tempBalance = 0;
   for (let m = 1; m <= totalMonths; m++) {
     tempBalance *= Math.pow(1 + dailyRate, daysPerMonth);
-    tempBalance += 1; // Add 1 unit
+    tempBalance += 1; 
   }
   
   return remainingNeeded / tempBalance;
@@ -243,13 +192,13 @@ function solveForMonthly(P, T, years, annualRate) {
 function solveForRate(P, T, years, M) {
   const totalMonths = Math.round(years * 12);
   let low = 0;
-  let high = 200; // Allow up to 200% for bisection
+  let high = 500; 
   let mid = 0;
 
   for (let i = 0; i < 60; i++) {
     mid = (low + high) / 2;
-    const res = calculateProjection(P, mid, M, totalMonths);
-    if (res.finalBalance > T) high = mid;
+    const finalBalance = calculateProjection(P, mid, M, totalMonths);
+    if (finalBalance > T) high = mid;
     else low = mid;
   }
   return mid;
@@ -268,38 +217,30 @@ function updateUI() {
   let finalM = isNaN(M) ? 0 : M;
 
   if (isNaN(M)) {
-    // Mode: Calculate Monthly
     finalM = solveForMonthly(P, T, Y, R);
     if (isFinite(finalM) && finalM > 0) {
-      document.getElementById("monthly").placeholder = finalM.toLocaleString(undefined, {maximumFractionDigits: 0});
+      monthly.placeholder = Math.round(finalM).toLocaleString();
+    } else {
+      monthly.placeholder = "0";
     }
   } else {
-    // Mode: Calculate Rate
     R = solveForRate(P, T, Y, M);
     rate.value = R.toFixed(2);
   }
 
-  const result = calculateProjection(P, R, finalM, totalMonths);
-  
-  // Update Stats
+  const finalBalance = calculateProjection(P, R, finalM, totalMonths);
   const totalInvested = P + (finalM * totalMonths);
+  
   statTotalCont.innerText = '₦' + Math.round(totalInvested).toLocaleString();
-  statInterest.innerText = '₦' + Math.round(result.finalBalance - totalInvested).toLocaleString();
-
-  // Update Chart
-  chart.data.labels = Array.from({length: totalMonths + 1}, (_, i) => `Mo ${i}`);
-  chart.data.datasets[0].data = result.history;
-  chart.update('none'); // Update without animation for "live" feel
+  statInterest.innerText = '₦' + Math.round(finalBalance - totalInvested).toLocaleString();
+  statFinal.innerText = '₦' + Math.round(finalBalance).toLocaleString();
 }
 
 [principal, target, yearsInput, rate, monthly].forEach(input => {
   input.addEventListener("input", updateUI);
 });
 
-window.onload = () => {
-  initChart();
-  updateUI();
-};
+window.onload = updateUI;
 </script>
 </body>
 </html>
