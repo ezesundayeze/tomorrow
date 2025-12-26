@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investment Goal Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1f2937;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wrapper {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      .wrapper { grid-template-columns: 1fr; }
+    }
+
+    .container {
+      background: var(--card);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      height: fit-content;
+    }
+
+    .chart-container {
+      background: var(--card);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      min-height: 400px;
+    }
+
+    h2 { margin-top: 0; font-size: 1.5rem; color: var(--primary); }
+
+    .input-group { margin-bottom: 15px; }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      ring: 2px solid var(--primary);
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .stats {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .highlight { font-weight: bold; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="container">
+    <h2>Goal Settings</h2>
+
+    <div class="input-group">
+      <label>Starting Capital (₦)</label>
+      <input id="principal" type="number" value="10000000">
+    </div>
+
+    <div class="input-group">
+      <label>Target Amount (₦)</label>
+      <input id="target" type="number" value="50000000">
+    </div>
+
+    <div class="input-group">
+      <label>Time Period (Years)</label>
+      <input id="years" type="number" value="3" step="0.1">
+    </div>
+
+    <div class="input-group">
+      <label>Annual Interest Rate (%)</label>
+      <input id="rate" type="number" value="16" step="0.1">
+      <div class="hint">Calculated automatically if monthly input is provided.</div>
+    </div>
+
+    <div class="input-group">
+      <label>Monthly Contribution (₦)</label>
+      <input id="monthly" type="number" placeholder="Enter to find required rate">
+      <div class="hint">Leave empty to find required monthly savings.</div>
+    </div>
+
+    <div class="stats" id="resultsSection">
+      <div class="stat-item">
+        <span>Total Contributions:</span>
+        <span id="statTotalCont" class="highlight">₦0</span>
+      </div>
+      <div class="stat-item">
+        <span>Interest Earned:</span>
+        <span id="statInterest" class="highlight">₦0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Growth Projection</h2>
+    <canvas id="growthChart"></canvas>
+  </div>
+</div>
+
+<script>
+const principal = document.getElementById("principal");
+const target = document.getElementById("target");
+const yearsInput = document.getElementById("years");
+const rate = document.getElementById("rate");
+const monthly = document.getElementById("monthly");
+
+const statTotalCont = document.getElementById("statTotalCont");
+const statInterest = document.getElementById("statInterest");
+
+let chart;
+
+function initChart() {
+  const ctx = document.getElementById('growthChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Balance (₦)',
+        data: [],
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: (value) => '₦' + value.toLocaleString()
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (context) => 'Balance: ₦' + context.parsed.y.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+}
+
+function calculateProjection(P, annualRate, monthlyContribution, totalMonths) {
+  const dailyRate = (annualRate / 100) / 365;
+  const daysPerMonth = 365 / 12;
+  let balance = P;
+  let history = [P];
+  
+  for (let m = 1; m <= totalMonths; m++) {
+    // 1. Compounding current balance daily for one month
+    balance *= Math.pow(1 + dailyRate, daysPerMonth);
+    // 2. Add monthly contribution at the end of the month
+    balance += monthlyContribution;
+    history.push(balance);
+  }
+  
+  return { finalBalance: balance, history };
+}
+
+function solveForMonthly(P, T, years, annualRate) {
+  const totalMonths = Math.round(years * 12);
+  const dailyRate = (annualRate / 100) / 365;
+  const daysPerMonth = 365 / 12;
+  
+  // Growth of Principal alone
+  const principalOnlyGrowth = P * Math.pow(1 + dailyRate, 365 * years);
+  const remainingNeeded = T - principalOnlyGrowth;
+  
+  if (remainingNeeded <= 0) return 0;
+
+  // Solving for M in: T = P(1+r)^n + M[((1+r)^n - 1) / r_monthly]
+  // Since we use daily compounding, we simulate the "Monthly Unit Value"
+  let unitValue = 0;
+  let tempBalance = 0;
+  for (let m = 1; m <= totalMonths; m++) {
+    tempBalance *= Math.pow(1 + dailyRate, daysPerMonth);
+    tempBalance += 1; // Add 1 unit
+  }
+  
+  return remainingNeeded / tempBalance;
+}
+
+function solveForRate(P, T, years, M) {
+  const totalMonths = Math.round(years * 12);
+  let low = 0;
+  let high = 200; // Allow up to 200% for bisection
+  let mid = 0;
+
+  for (let i = 0; i < 60; i++) {
+    mid = (low + high) / 2;
+    const res = calculateProjection(P, mid, M, totalMonths);
+    if (res.finalBalance > T) high = mid;
+    else low = mid;
+  }
+  return mid;
+}
+
+function updateUI() {
+  const P = parseFloat(principal.value) || 0;
+  const T = parseFloat(target.value) || 0;
+  const Y = parseFloat(yearsInput.value) || 0;
+  let R = parseFloat(rate.value) || 0;
+  let M = parseFloat(monthly.value);
+
+  if (P < 0 || T < 0 || Y <= 0) return;
+
+  const totalMonths = Math.round(Y * 12);
+  let finalM = isNaN(M) ? 0 : M;
+
+  if (isNaN(M)) {
+    // Mode: Calculate Monthly
+    finalM = solveForMonthly(P, T, Y, R);
+    if (isFinite(finalM) && finalM > 0) {
+      document.getElementById("monthly").placeholder = finalM.toLocaleString(undefined, {maximumFractionDigits: 0});
+    }
+  } else {
+    // Mode: Calculate Rate
+    R = solveForRate(P, T, Y, M);
+    rate.value = R.toFixed(2);
+  }
+
+  const result = calculateProjection(P, R, finalM, totalMonths);
+  
+  // Update Stats
+  const totalInvested = P + (finalM * totalMonths);
+  statTotalCont.innerText = '₦' + Math.round(totalInvested).toLocaleString();
+  statInterest.innerText = '₦' + Math.round(result.finalBalance - totalInvested).toLocaleString();
+
+  // Update Chart
+  chart.data.labels = Array.from({length: totalMonths + 1}, (_, i) => `Mo ${i}`);
+  chart.data.datasets[0].data = result.history;
+  chart.update('none'); // Update without animation for "live" feel
+}
+
+[principal, target, yearsInput, rate, monthly].forEach(input => {
+  input.addEventListener("input", updateUI);
+});
+
+window.onload = () => {
+  initChart();
+  updateUI();
+};
+</script>
+</body>
+</html>
